@@ -1,0 +1,303 @@
+# Swagger 2.0 Playground app specification
+# http://localhost:8080
+
+swagger: "2.0"
+
+#Part1
+#Metdata
+info:
+  version: "0.0.1"
+  title: Playground API
+  description: API Specification for Playground,|
+    These specification will help to know more about the applications deployed in PA space
+    This would help both developers and testers where they are play around with this API endpoints.
+  contact:
+    name: Team name
+    url: http://teamname.com
+    email: contact@teamname.com
+
+  license:
+    name: Internal Use only
+    url: http://samplelicense.com
+
+# Root Document
+host: localhost:8080
+basePath: /v1/
+schemes:
+  - http
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+
+#External doumentation
+#There are no externalDocs
+#Tags for Playground API
+tags:
+  - name: application
+    description: Refer to application package that are offered by Playgroung API.
+
+#Part3
+#Paths
+paths:
+
+  # API for the first page to display both PCF and WAS apps
+  /region/{regionName}/apps/count:
+    get:
+      summary: Count for number of apps
+      description: Return the application count for the specified region
+      tags:
+        - application
+      consumes:
+        - application/json
+      produces:
+        - appliation/json
+      parameters:
+        - $ref: "#/parameters/RegionInPath"
+      responses:
+        "200":
+          description: "Operation was successful"
+          schema:
+            type: object
+            required:
+              - pcf
+              - was
+            properties:
+              pcf:
+                description: PCF applictaion count
+                type: integer
+                format: int32
+              was:
+                description: WAS applictaion count
+                type: integer
+                format: int32
+        "400":
+          description: "Bad Request"
+          schema:
+            $ref: "#/definitions/Error"
+        default:
+          description: General Errors
+          schema:
+            $ref: "#/definitions/Error"
+
+  #API for the second page to show apps on the search dropdown
+  /region/{regionName}/apps:
+    get:
+      summary: Get operation for apps
+      description: Return the app detials for the region
+      tags:
+        - application
+      consumes:
+        - application/json
+      produces:
+        - appliation/json
+      parameters:
+        - $ref: "#/parameters/RegionInPath"
+        - name: type
+          in: query
+          description: application type
+          required: false
+          type: string
+        - name: filter
+          in: query
+          description: application type
+          required: false
+          type: array
+          collectionFormat: csv
+          uniqueItems: true
+          items:
+            type: string
+            enum: [id,name,applicationType,applicationLayer,gitLink,owner,downstreamApps]
+      responses:
+        "200":
+          description: "Operation was successful"
+          schema:
+            $ref: "#/definitions/Applications"
+        "404":
+          description: "Requested resource not found"
+          schema:
+            $ref: "#/definitions/Error"
+        "400":
+          description: "Bad Request"
+          schema:
+            $ref: "#/definitions/Error"
+        default:
+          description: General Errors
+          schema:
+            $ref: "#/definitions/Error"
+
+
+  /region/{regionName}/apps{id}:
+    get:
+      summary: Get operation for specific app
+      description: Return the app detials for the specified app id
+      tags:
+        - application
+      consumes:
+        - application/json
+      produces:
+        - appliation/json
+      parameters:
+        - $ref: "#/parameters/RegionInPath"
+        - name: id
+          in: path
+          description: region name
+          required: true
+          type: number
+          format: int64
+      responses:
+        "200":
+          description: "Operation was successful"
+          schema:
+            $ref: "#/definitions/Application"
+        "404":
+          description: "Requested resource not found"
+          schema:
+            $ref: "#/definitions/Error"
+        "400":
+          description: "Bad Request"
+          schema:
+            $ref: "#/definitions/Error"
+        default:
+          description: General Errors
+          schema:
+            $ref: "#/definitions/Error"
+
+
+#Part2
+#definitions + parameters + securityDefinitions
+
+definitions:
+  # A general error message in case of common errors
+  Error:
+    type: object
+    required:
+      - message
+      - timestamp
+    properties:
+      message:
+        type: string
+      timestamp:
+        type: string
+        format: date-time
+      errors:
+        type: array
+        items:
+          $ref: "#/definitions/ApplicationError"
+      endpoint:
+        type: string
+
+
+  ApplicationError:
+    type: object
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+      hints:
+        type: array
+        items:
+          type: string
+      info:
+        type: string
+
+  #Collection of Apps
+  Applications:
+    type: array
+    items:
+      $ref: "#/definitions/Application"
+
+  #Application
+  Application:
+    type: object
+    properties:
+      id:
+        type: number
+      name:
+        type: string
+      applicationType:
+        type: string
+        enum:
+          - pcf
+          - was
+      applicationLayer:
+        type: string
+        enum:
+          - web
+          - service
+          - bi
+      gitLink:
+        type: string
+      version:
+        type: string
+      healthStatus:
+        type: string
+        enum:
+          - good
+          - bad
+      owner:
+        $ref: "#/definitions/Owner"
+      downstreamApps:
+        type: array
+        items:
+          properties:
+            appId:
+              type: number
+              format: int64
+            appName:
+              type: string
+
+  #Owner
+  Owner:
+    type: object
+    properties:
+      id:
+        type: number
+      name:
+        type: string
+      email:
+        type: string
+
+  #Region
+  Region:
+    type: object
+    properties:
+      id:
+        type: number
+      region:
+        type: string
+        enum:
+          - ASYS
+          - TSYS
+          - QSYS
+          - MST0
+          - VST0
+  #ApplicationRegion
+  ApplicationRegion:
+    type: object
+    properties:
+      id:
+        type: number
+      applicationUrl:
+        type: string
+      healtheckUri:
+        type: string
+      region:
+        $ref: "#/definitions/Region"
+
+#common parameters
+parameters:
+  RegionInPath:
+    name: regionName
+    in: path
+    type: string
+    required: true
+    enum:
+      - asys
+      - tsys
+      - qsys
+      - mst0
+      - vst0
